@@ -1,0 +1,20 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Foreground service permissions -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission
+    android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+    android:minSdkVersion="34" />
+
+  <!-- Notification permission for API 33+ -->
+  <uses-permission
+    android:name="android.permission.POST_NOTIFICATIONS"
+    android:minSdkVersion="33" />
+
+  <application>
+    <!-- Screen Capture Foreground Service -->
+    <service
+      android:name="com.framecapture.ScreenCaptureService"
+      android:exported="false"
+      android:foregroundServiceType="mediaProjection" />
+  </application>
+</manifest>
