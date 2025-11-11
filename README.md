@@ -128,7 +128,7 @@ if (permissionStatus === FrameCapture.PermissionStatus.GRANTED) {
 
 ### Permission Management
 
-### `requestPermission()`
+#### `requestPermission()`
 
 Requests **MediaProjection permission** (screen capture/screen sharing) from the user. This opens the Android system dialog asking the user to allow screen recording.
 
@@ -142,7 +142,7 @@ const status = await FrameCapture.requestPermission();
 
 **Note:** This is a runtime permission that must be granted before starting capture. The permission dialog is shown by the Android system, not your app.
 
-### `checkPermission()`
+#### `checkPermission()`
 
 Checks if MediaProjection permission (screen capture) has been previously granted without showing the permission dialog.
 
@@ -154,7 +154,7 @@ const status = await FrameCapture.checkPermission();
 
 **Note:** Returns `NOT_DETERMINED` if permission was never requested, `GRANTED` if previously granted. MediaProjection permission cannot be checked programmatically on Android, so this only verifies if permission data exists from a previous grant.
 
-### `checkNotificationPermission()`
+#### `checkNotificationPermission()`
 
 Checks if notification permission is granted (Android 13+).
 
@@ -166,7 +166,7 @@ const status = await FrameCapture.checkNotificationPermission();
 
 ### Capture Control
 
-### `startCapture(options)`
+#### `startCapture(options)`
 
 Starts screen capture with the specified options.
 
@@ -190,7 +190,7 @@ const session = await FrameCapture.startCapture({
 
 **Throws:** `CaptureError` if capture cannot be started
 
-### `stopCapture()`
+#### `stopCapture()`
 
 Stops the active capture session.
 
@@ -200,7 +200,7 @@ await FrameCapture.stopCapture();
 
 **Returns:** `Promise<void>`
 
-### `pauseCapture()`
+#### `pauseCapture()`
 
 Pauses the active capture session.
 
@@ -210,7 +210,7 @@ await FrameCapture.pauseCapture();
 
 **Returns:** `Promise<void>`
 
-### `resumeCapture()`
+#### `resumeCapture()`
 
 Resumes a paused capture session.
 
@@ -220,7 +220,7 @@ await FrameCapture.resumeCapture();
 
 **Returns:** `Promise<void>`
 
-### `getCaptureStatus()`
+#### `getCaptureStatus()`
 
 Gets the current capture status.
 
@@ -233,7 +233,7 @@ console.log(status.state); // 'idle' | 'capturing' | 'paused'
 
 ### Utility Functions
 
-### `cleanupTempFrames()`
+#### `cleanupTempFrames()`
 
 Manually cleans up all temporary frame files stored in the app's cache directory.
 
@@ -256,7 +256,7 @@ await FrameCapture.cleanupTempFrames();
 - After processing frames in your app
 - When you want to free up cache storage manually
 
-### `addListener(eventType, callback)`
+#### `addListener(eventType, callback)`
 
 Adds an event listener for capture events.
 
