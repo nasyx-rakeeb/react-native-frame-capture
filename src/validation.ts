@@ -10,8 +10,13 @@ import {
   MAX_INTERVAL,
   MIN_QUALITY,
   MAX_QUALITY,
+  MIN_CHANGE_THRESHOLD,
+  MAX_CHANGE_THRESHOLD,
+  DEFAULT_CHANGE_MIN_INTERVAL,
+  MIN_CHANGE_SAMPLE_RATE,
+  MAX_CHANGE_SAMPLE_RATE,
 } from './constants';
-import type { CaptureOptions } from './types';
+import type { CaptureOptions, ChangeDetectionConfig } from './types';
 
 /**
  * Validates capture options
@@ -20,19 +25,48 @@ import type { CaptureOptions } from './types';
 export function validateOptions(options: Partial<CaptureOptions>): void {
   // Validate capture config
   if (options.capture) {
-    const { interval } = options.capture;
+    const { mode, interval, changeDetection } = options.capture;
 
-    if (interval !== undefined) {
-      if (
-        typeof interval !== 'number' ||
-        interval < MIN_INTERVAL ||
-        interval > MAX_INTERVAL
-      ) {
+    // Validate mode if provided
+    if (mode !== undefined) {
+      if (mode !== 'interval' && mode !== 'change-detection') {
         throw new CaptureError(
           CaptureErrorCode.INVALID_OPTIONS,
-          `capture.interval must be a number between ${MIN_INTERVAL} and ${MAX_INTERVAL} milliseconds`
+          `capture.mode must be either 'interval' or 'change-detection'`
         );
       }
+    }
+
+    const effectiveMode = mode || 'interval';
+
+    // Validate interval for interval mode
+    if (effectiveMode === 'interval') {
+      if (interval !== undefined) {
+        if (
+          typeof interval !== 'number' ||
+          interval < MIN_INTERVAL ||
+          interval > MAX_INTERVAL
+        ) {
+          throw new CaptureError(
+            CaptureErrorCode.INVALID_OPTIONS,
+            `capture.interval must be a number between ${MIN_INTERVAL} and ${MAX_INTERVAL} milliseconds`
+          );
+        }
+      }
+    }
+
+    // Validate change detection config
+    if (effectiveMode === 'change-detection') {
+      if (!changeDetection) {
+        throw new CaptureError(
+          CaptureErrorCode.INVALID_OPTIONS,
+          `capture.changeDetection is required when mode is 'change-detection'`
+        );
+      }
+      validateChangeDetection(changeDetection);
+    } else if (changeDetection) {
+      // Validate change detection config even if provided for interval mode
+      validateChangeDetection(changeDetection);
     }
   }
 
@@ -146,6 +180,81 @@ export function validateOptions(options: Partial<CaptureOptions>): void {
   // Validate performance config
   if (options.performance) {
     validatePerformance(options.performance);
+  }
+}
+
+/**
+ * Validates change detection configuration
+ */
+function validateChangeDetection(config: ChangeDetectionConfig): void {
+  // Validate threshold (required)
+  if (config.threshold === undefined) {
+    throw new CaptureError(
+      CaptureErrorCode.INVALID_OPTIONS,
+      `capture.changeDetection.threshold is required`
+    );
+  }
+
+  if (
+    typeof config.threshold !== 'number' ||
+    config.threshold < MIN_CHANGE_THRESHOLD ||
+    config.threshold > MAX_CHANGE_THRESHOLD
+  ) {
+    throw new CaptureError(
+      CaptureErrorCode.INVALID_OPTIONS,
+      `capture.changeDetection.threshold must be a number between ${MIN_CHANGE_THRESHOLD} and ${MAX_CHANGE_THRESHOLD}`
+    );
+  }
+
+  // Validate minInterval (optional)
+  if (config.minInterval !== undefined) {
+    if (
+      typeof config.minInterval !== 'number' ||
+      config.minInterval < MIN_INTERVAL
+    ) {
+      throw new CaptureError(
+        CaptureErrorCode.INVALID_OPTIONS,
+        `capture.changeDetection.minInterval must be a number >= ${MIN_INTERVAL}ms`
+      );
+    }
+  }
+
+  // Validate maxInterval (optional, must be > minInterval if set)
+  if (config.maxInterval !== undefined) {
+    if (typeof config.maxInterval !== 'number' || config.maxInterval < 0) {
+      throw new CaptureError(
+        CaptureErrorCode.INVALID_OPTIONS,
+        `capture.changeDetection.maxInterval must be a non-negative number`
+      );
+    }
+
+    const effectiveMinInterval =
+      config.minInterval ?? DEFAULT_CHANGE_MIN_INTERVAL;
+    if (config.maxInterval > 0 && config.maxInterval <= effectiveMinInterval) {
+      throw new CaptureError(
+        CaptureErrorCode.INVALID_OPTIONS,
+        `capture.changeDetection.maxInterval must be greater than minInterval (${effectiveMinInterval}ms) or 0 to disable`
+      );
+    }
+  }
+
+  // Validate sampleRate (optional)
+  if (config.sampleRate !== undefined) {
+    if (
+      typeof config.sampleRate !== 'number' ||
+      config.sampleRate < MIN_CHANGE_SAMPLE_RATE ||
+      config.sampleRate > MAX_CHANGE_SAMPLE_RATE
+    ) {
+      throw new CaptureError(
+        CaptureErrorCode.INVALID_OPTIONS,
+        `capture.changeDetection.sampleRate must be a number between ${MIN_CHANGE_SAMPLE_RATE} and ${MAX_CHANGE_SAMPLE_RATE}`
+      );
+    }
+  }
+
+  // Validate detectionRegion (optional)
+  if (config.detectionRegion !== undefined) {
+    validateCaptureRegion(config.detectionRegion);
   }
 }
 
@@ -303,11 +412,21 @@ function validateCaptureRegion(region: any): void {
 export function mergeOptions(
   options?: Partial<CaptureOptions>
 ): CaptureOptions {
+  const mode = options?.capture?.mode || 'interval';
+
+  // Build capture config based on mode
+  const captureConfig = {
+    mode,
+    ...options?.capture,
+  };
+
+  // Set default interval for interval mode if not specified
+  if (mode === 'interval' && captureConfig.interval === undefined) {
+    captureConfig.interval = 1000;
+  }
+
   return {
-    capture: {
-      interval: 1000,
-      ...options?.capture,
-    },
+    capture: captureConfig,
     image: {
       quality: 80,
       format: 'jpeg',

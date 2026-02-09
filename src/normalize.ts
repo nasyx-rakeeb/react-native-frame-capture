@@ -4,13 +4,22 @@
  * @module normalize
  */
 
-import type { CaptureOptions } from './types';
+import type { CaptureOptions, CaptureMode } from './types';
 
 /**
  * Flat options structure expected by native code
  */
 export interface NativeCaptureOptions {
-  interval: number;
+  // Capture mode
+  captureMode: CaptureMode;
+  interval?: number;
+  // Change detection options (flat)
+  changeThreshold?: number;
+  changeMinInterval?: number;
+  changeMaxInterval?: number;
+  changeSampleRate?: number;
+  changeDetectionRegion?: any;
+  // Image options
   quality: number;
   format: 'png' | 'jpeg';
   saveFrames?: boolean;
@@ -48,9 +57,20 @@ export function normalizeOptions(
   const { capture, image, storage, performance, notification, overlays } =
     options;
 
+  const captureMode = capture.mode || 'interval';
+  const changeDetection = capture.changeDetection;
+
   return {
-    // Capture config
+    // Capture mode
+    captureMode,
     interval: capture.interval,
+
+    // Change detection config (flattened)
+    changeThreshold: changeDetection?.threshold,
+    changeMinInterval: changeDetection?.minInterval,
+    changeMaxInterval: changeDetection?.maxInterval,
+    changeSampleRate: changeDetection?.sampleRate,
+    changeDetectionRegion: changeDetection?.detectionRegion,
 
     // Image config
     quality: image.quality,

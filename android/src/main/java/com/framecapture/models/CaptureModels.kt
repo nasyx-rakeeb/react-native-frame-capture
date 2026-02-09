@@ -114,6 +114,31 @@ data class AdvancedConfig(
 }
 
 /**
+ * Change detection configuration for capturing only when screen changes
+ */
+data class ChangeDetectionConfig(
+    val threshold: Float = com.framecapture.Constants.DEFAULT_CHANGE_THRESHOLD,
+    val minInterval: Long = com.framecapture.Constants.DEFAULT_CHANGE_MIN_INTERVAL,
+    val maxInterval: Long = com.framecapture.Constants.DEFAULT_CHANGE_MAX_INTERVAL,
+    val sampleRate: Int = com.framecapture.Constants.DEFAULT_CHANGE_SAMPLE_RATE,
+    val detectionRegion: CaptureRegion? = null
+) {
+    companion object {
+        fun fromReadableMap(map: ReadableMap?): ChangeDetectionConfig? {
+            if (map == null) return null
+
+            return ChangeDetectionConfig(
+                threshold = if (map.hasKey("changeThreshold")) map.getDouble("changeThreshold").toFloat() else com.framecapture.Constants.DEFAULT_CHANGE_THRESHOLD,
+                minInterval = if (map.hasKey("changeMinInterval")) map.getDouble("changeMinInterval").toLong() else com.framecapture.Constants.DEFAULT_CHANGE_MIN_INTERVAL,
+                maxInterval = if (map.hasKey("changeMaxInterval")) map.getDouble("changeMaxInterval").toLong() else com.framecapture.Constants.DEFAULT_CHANGE_MAX_INTERVAL,
+                sampleRate = if (map.hasKey("changeSampleRate")) map.getInt("changeSampleRate") else com.framecapture.Constants.DEFAULT_CHANGE_SAMPLE_RATE,
+                detectionRegion = if (map.hasKey("changeDetectionRegion")) CaptureRegion.fromReadableMap(map.getMap("changeDetectionRegion")) else null
+            )
+        }
+    }
+}
+
+/**
  * Configuration options for notification customization
  */
 data class NotificationOptions(
@@ -162,7 +187,9 @@ data class NotificationOptions(
  * Configuration options for screen capture
  */
 data class CaptureOptions(
+    val captureMode: CaptureMode = CaptureMode.INTERVAL,
     val interval: Long = com.framecapture.Constants.DEFAULT_INTERVAL,
+    val changeDetection: ChangeDetectionConfig? = null,
     val quality: Int = com.framecapture.Constants.DEFAULT_QUALITY,
     val format: String = com.framecapture.Constants.DEFAULT_FORMAT,
     val saveFrames: Boolean = false,
@@ -216,8 +243,21 @@ data class CaptureOptions(
                 AdvancedConfig()
             }
 
+            // Parse capture mode
+            val captureModeString = if (map.hasKey("captureMode")) {
+                map.getString("captureMode") ?: com.framecapture.Constants.CAPTURE_MODE_INTERVAL
+            } else {
+                com.framecapture.Constants.CAPTURE_MODE_INTERVAL
+            }
+            val captureMode = CaptureMode.fromString(captureModeString)
+
+            // Parse change detection config
+            val changeDetection = ChangeDetectionConfig.fromReadableMap(map)
+
             return CaptureOptions(
+                captureMode = captureMode,
                 interval = if (map.hasKey("interval")) map.getDouble("interval").toLong() else com.framecapture.Constants.DEFAULT_INTERVAL,
+                changeDetection = changeDetection,
                 quality = if (map.hasKey("quality")) map.getInt("quality") else com.framecapture.Constants.DEFAULT_QUALITY,
                 format = if (map.hasKey("format")) map.getString("format") ?: com.framecapture.Constants.DEFAULT_FORMAT else com.framecapture.Constants.DEFAULT_FORMAT,
                 saveFrames = if (map.hasKey("saveFrames")) map.getBoolean("saveFrames") else false,
@@ -235,6 +275,7 @@ data class CaptureOptions(
 
     fun toWritableMap(): WritableMap {
         return Arguments.createMap().apply {
+            putString("captureMode", captureMode.value)
             putDouble("interval", interval.toDouble())
             putInt("quality", quality)
             putString("format", format)

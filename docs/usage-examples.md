@@ -12,6 +12,35 @@ await FrameCapture.startCapture({
 });
 ```
 
+## Change Detection Capture
+
+Capture frames only when screen content changes:
+
+```typescript
+await FrameCapture.startCapture({
+  capture: {
+    mode: 'change-detection',
+    changeDetection: {
+      threshold: 15, // Capture when 15% of screen changes
+      minInterval: 500, // Poll every 500ms
+      maxInterval: 5000, // Force capture at least every 5s
+    },
+  },
+  image: { quality: 80, format: 'jpeg' },
+  storage: { saveFrames: true },
+});
+
+// Optional: Monitor change detection for debugging
+FrameCapture.addListener(
+  FrameCapture.CaptureEventType.CHANGE_DETECTED,
+  (event) => {
+    console.log(
+      `Change: ${event.changePercent.toFixed(1)}%, captured: ${event.captured}`
+    );
+  }
+);
+```
+
 ## Capture with Text Overlay
 
 ```typescript

@@ -117,4 +117,34 @@ class CaptureEventEmitter(
             // Silently fail - event emission is not critical
         }
     }
+
+    /**
+     * Emits onChangeDetected event to JavaScript for debugging/monitoring
+     *
+     * Contains change detection results even when capture is not triggered.
+     *
+     * @param changePercent Percentage of pixels that changed (0-100)
+     * @param threshold The configured threshold for triggering capture
+     * @param captured Whether a capture was triggered
+     * @param timeSinceLastCapture Milliseconds since last capture
+     */
+    fun emitChangeDetected(
+        changePercent: Float,
+        threshold: Float,
+        captured: Boolean,
+        timeSinceLastCapture: Long
+    ) {
+        try {
+            val params = Arguments.createMap().apply {
+                putDouble("changePercent", changePercent.toDouble())
+                putDouble("threshold", threshold.toDouble())
+                putBoolean("captured", captured)
+                putDouble("timeSinceLastCapture", timeSinceLastCapture.toDouble())
+            }
+            eventEmitter(Constants.EVENT_CHANGE_DETECTED, params)
+        } catch (e: Exception) {
+            // Silently fail - event emission is not critical
+        }
+    }
 }
+

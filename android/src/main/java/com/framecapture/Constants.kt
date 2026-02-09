@@ -28,6 +28,14 @@ object Constants {
 
     // Capture mode strings
     const val CAPTURE_MODE_INTERVAL = "interval"
+    const val CAPTURE_MODE_CHANGE_DETECTION = "change-detection"
+
+    // Change detection defaults
+    const val DEFAULT_CHANGE_THRESHOLD = 5f              // 5% of pixels changed
+    const val DEFAULT_CHANGE_MIN_INTERVAL = 500L         // 500ms minimum between captures
+    const val DEFAULT_CHANGE_MAX_INTERVAL = 0L           // 0 = disabled (no forced captures)
+    const val DEFAULT_CHANGE_SAMPLE_RATE = 16            // Sample every 16th pixel
+    const val CHANGE_PIXEL_TOLERANCE = 10                // RGB difference tolerance for "changed" pixel
 
     // Storage warning threshold (100MB in bytes) - DEFAULT VALUE
     const val DEFAULT_STORAGE_WARNING_THRESHOLD = 100L * 1024L * 1024L
@@ -108,6 +116,7 @@ object Constants {
     const val EVENT_CAPTURE_PAUSE = "onCapturePause"
     const val EVENT_CAPTURE_RESUME = "onCaptureResume"
     const val EVENT_OVERLAY_ERROR = "onOverlayError"
+    const val EVENT_CHANGE_DETECTED = "onChangeDetected"
 
     // Resource cleanup timeout (in milliseconds) - DEFAULT VALUES
     const val DEFAULT_EXECUTOR_SHUTDOWN_TIMEOUT = 5000L

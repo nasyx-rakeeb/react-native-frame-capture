@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-02-09
+
+### Added
+
+#### Change Detection Capture Mode
+
+- New capture mode that captures frames only when screen content changes
+- Configurable change detection options:
+  - `threshold` - Percentage of pixels that must change to trigger capture (1-100%)
+  - `minInterval` - Minimum milliseconds between captures (100-60000ms)
+  - `maxInterval` - Maximum milliseconds before forced capture (0 = disabled)
+  - `sampleRate` - Pixel sampling rate for performance optimization (1-100)
+  - `detectionRegion` - Optional region to monitor for changes
+- New `CHANGE_DETECTED` event for debugging and monitoring
+- Pixel sampling algorithm for efficient frame comparison
+
+### Example
+
+```typescript
+await FrameCapture.startCapture({
+  capture: {
+    mode: 'change-detection',
+    changeDetection: {
+      threshold: 15, // Capture when 15% of screen changes
+      minInterval: 500, // Poll every 500ms
+      maxInterval: 5000, // Force capture at least every 5s
+    },
+  },
+  image: { quality: 80, format: 'jpeg' },
+});
+```
+
+---
+
 ## [1.0.0] - 2025-11-11
 
 ### Added
@@ -141,4 +175,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This is the initial stable release of React Native Frame Capture. The library provides production-ready screen capture functionality with a focus on reliability, performance, and developer experience.
 
+[1.1.0]: https://github.com/nasyx-rakeeb/react-native-frame-capture/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nasyx-rakeeb/react-native-frame-capture/releases/tag/v1.0.0

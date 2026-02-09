@@ -25,7 +25,14 @@ fun ReadableMap.getIntOrDefault(key: String, default: Int): Int {
  * Capture mode determines when frames are captured
  */
 enum class CaptureMode(val value: String) {
-    INTERVAL("interval")      // Fixed interval capture
+    INTERVAL("interval"),                    // Fixed interval capture
+    CHANGE_DETECTION("change-detection");    // Capture only when screen changes
+
+    companion object {
+        fun fromString(value: String): CaptureMode {
+            return entries.find { it.value == value } ?: INTERVAL
+        }
+    }
 }
 
 /**

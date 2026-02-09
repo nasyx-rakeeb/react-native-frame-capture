@@ -56,6 +56,13 @@ export type OverlayErrorEvent = {
   message: string;
 };
 
+export type ChangeDetectedEvent = {
+  changePercent: number;
+  threshold: number;
+  captured: boolean;
+  timeSinceLastCapture: number;
+};
+
 /**
  * TurboModule specification for FrameCapture
  * Defines the native methods implemented in Kotlin
@@ -70,6 +77,7 @@ export interface Spec extends TurboModule {
   readonly onCapturePause: EventEmitter<CapturePauseEvent>;
   readonly onCaptureResume: EventEmitter<CaptureResumeEvent>;
   readonly onOverlayError: EventEmitter<OverlayErrorEvent>;
+  readonly onChangeDetected: EventEmitter<ChangeDetectedEvent>;
 
   // Methods
   requestPermission(): Promise<string>;

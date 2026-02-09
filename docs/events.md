@@ -14,6 +14,7 @@ enum CaptureEventType {
   CAPTURE_PAUSE = 'onCapturePause',
   CAPTURE_RESUME = 'onCaptureResume',
   OVERLAY_ERROR = 'onOverlayError',
+  CHANGE_DETECTED = 'onChangeDetected', // Change detection mode only
 }
 ```
 
@@ -56,6 +57,19 @@ interface CaptureStopEvent {
 interface StorageWarningEvent {
   availableSpace: number; // Available storage in bytes
   threshold: number; // Warning threshold in bytes
+}
+```
+
+### ChangeDetectedEvent
+
+Emitted during change detection mode for every poll cycle (useful for debugging).
+
+```typescript
+interface ChangeDetectedEvent {
+  changePercent: number; // Percentage of pixels changed (0-100)
+  threshold: number; // Configured threshold
+  captured: boolean; // Whether a capture was triggered
+  timeSinceLastCapture: number; // Milliseconds since last capture
 }
 ```
 

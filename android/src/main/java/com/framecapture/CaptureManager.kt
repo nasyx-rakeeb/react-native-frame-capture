@@ -22,8 +22,10 @@ import com.framecapture.models.CaptureState
 import com.framecapture.models.CaptureStatus
 import com.framecapture.models.ErrorCode
 import com.framecapture.models.FrameInfo
+import com.framecapture.models.CaptureMode
 import com.framecapture.capture.CaptureEventEmitter
 import com.framecapture.capture.BitmapProcessor
+import com.framecapture.capture.ChangeDetector
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -87,6 +89,9 @@ class CaptureManager(
     // Specialized managers
     private lateinit var eventEmitterManager: CaptureEventEmitter
     private lateinit var bitmapProcessor: BitmapProcessor
+
+    // Change detection support
+    private var changeDetector: ChangeDetector? = null
 
     companion object {
         private const val TAG = "CaptureManager"
@@ -358,6 +363,158 @@ class CaptureManager(
     }
 
     /**
+     * Starts change detection capture mode
+     *
+     * Polls for frames at minInterval and compares them to detect changes.
+     * Only captures when change exceeds threshold or maxInterval forces capture.
+     */
+    private fun startChangeDetectionCapture() {
+        try {
+            val changeConfig = captureOptions?.changeDetection
+            val minInterval = changeConfig?.minInterval ?: Constants.DEFAULT_CHANGE_MIN_INTERVAL
+            val maxInterval = changeConfig?.maxInterval ?: Constants.DEFAULT_CHANGE_MAX_INTERVAL
+            val threshold = changeConfig?.threshold ?: Constants.DEFAULT_CHANGE_THRESHOLD
+
+            captureRunnable = object : Runnable {
+                override fun run() {
+                    try {
+                        if (isCapturing && !isPaused) {
+                            val image = imageReader?.acquireLatestImage()
+                            if (image != null) {
+                                processingExecutor.execute {
+                                    try {
+                                        processChangeDetectionFrame(image, threshold, minInterval, maxInterval)
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error processing change detection frame", e)
+                                        handleError(e)
+                                    } finally {
+                                        image.close()
+                                    }
+                                }
+                            }
+                        }
+
+                        // Schedule next check if still capturing
+                        if (isCapturing) {
+                            captureHandler.postDelayed(this, minInterval)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in change detection runnable", e)
+                        handleError(e)
+                    }
+                }
+            }
+
+            // Start the change detection polling
+            captureHandler.post(captureRunnable!!)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start change detection capture", e)
+            throw e
+        }
+    }
+
+    /**
+     * Processes a frame for change detection
+     *
+     * Compares frame with previous, determines if capture should occur,
+     * and emits change detection events.
+     */
+    private fun processChangeDetectionFrame(
+        image: Image,
+        threshold: Float,
+        minInterval: Long,
+        maxInterval: Long
+    ) {
+        var bitmap: Bitmap? = null
+
+        try {
+            // Convert to bitmap for comparison
+            bitmap = bitmapProcessor.imageToBitmap(image, captureOptions)
+
+            val currentTime = System.currentTimeMillis()
+            val timeSinceLastCapture = currentTime - lastCaptureTime
+
+            // Detect change percentage
+            val detector = changeDetector ?: return
+            val changePercent = detector.detectChange(bitmap)
+
+            // Determine if we should capture
+            val shouldCaptureDueToChange = changePercent >= threshold
+            val shouldCaptureDueToMaxInterval = maxInterval > 0 && timeSinceLastCapture >= maxInterval
+            val hasMinIntervalPassed = timeSinceLastCapture >= minInterval
+
+            val shouldDoCapture = hasMinIntervalPassed && (shouldCaptureDueToChange || shouldCaptureDueToMaxInterval)
+
+            // Emit change detected event for debugging/monitoring
+            eventEmitterManager.emitChangeDetected(
+                changePercent = changePercent,
+                threshold = threshold,
+                captured = shouldDoCapture,
+                timeSinceLastCapture = timeSinceLastCapture
+            )
+
+            if (shouldDoCapture) {
+                // Update previous frame for next comparison
+                detector.updatePreviousFrame(bitmap)
+                lastCaptureTime = currentTime
+
+                // Process and save the frame (reuse processImage logic)
+                processImageFromBitmap(bitmap)
+                // Don't recycle - processImageFromBitmap handles it
+                bitmap = null
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in change detection frame processing", e)
+            handleError(e)
+        } finally {
+            bitmap?.recycle()
+        }
+    }
+
+    /**
+     * Processes an already-converted bitmap (for change detection mode)
+     */
+    private fun processImageFromBitmap(bitmap: Bitmap) {
+        try {
+            val currentSessionId = sessionId ?: throw IllegalStateException("No active session")
+            val currentOptions = captureOptions ?: throw IllegalStateException("No capture options")
+
+            frameCount++
+
+            // Render overlays if configured
+            val overlays = currentOptions.overlays
+            if (!overlays.isNullOrEmpty()) {
+                overlayRenderer.renderOverlays(
+                    bitmap = bitmap,
+                    overlays = overlays,
+                    frameNumber = frameCount - 1,
+                    sessionId = currentSessionId
+                )
+            }
+
+            // Check storage space and emit warning if low
+            val threshold = currentOptions.advanced.storage.warningThreshold
+            storageManager.isStorageAvailable(threshold)
+
+            // Save frame (temp or permanent based on saveFrames option)
+            val frameInfo = storageManager.saveFrame(
+                bitmap = bitmap,
+                sessionId = currentSessionId,
+                frameNumber = frameCount - 1,
+                options = currentOptions
+            )
+
+            // Emit frame captured event
+            eventEmitterManager.emitFrameCaptured(frameInfo, frameCount - 1)
+
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /**
      * Checks if a frame should be captured based on throttling logic
      *
      * Enforces minimum interval between captures to prevent excessive frame rates.
@@ -475,7 +632,8 @@ class CaptureManager(
     /**
      * Starts the capture session
      *
-     * Sets up VirtualDisplay and ImageReader, then begins interval-based periodic capture.
+     * Sets up VirtualDisplay and ImageReader, then begins capture based on configured mode.
+     * Supports interval-based capture and change-detection capture.
      *
      * @throws IllegalStateException if already capturing or not initialized
      */
@@ -506,8 +664,24 @@ class CaptureManager(
             // Create VirtualDisplay
             createVirtualDisplay(metrics)
 
-            // Start periodic capture (interval mode only)
-            startPeriodicCapture()
+            // Start capture based on mode
+            val options = captureOptions!!
+            when (options.captureMode) {
+                CaptureMode.CHANGE_DETECTION -> {
+                    // Initialize change detector
+                    val changeConfig = options.changeDetection
+                    changeDetector = ChangeDetector(
+                        threshold = changeConfig?.threshold ?: Constants.DEFAULT_CHANGE_THRESHOLD,
+                        sampleRate = changeConfig?.sampleRate ?: Constants.DEFAULT_CHANGE_SAMPLE_RATE,
+                        detectionRegion = changeConfig?.detectionRegion
+                    )
+                    startChangeDetectionCapture()
+                }
+                else -> {
+                    // Default to interval mode
+                    startPeriodicCapture()
+                }
+            }
 
             // Emit capture start event to JavaScript
             val currentSessionId = sessionId ?: throw IllegalStateException("No session ID")
@@ -714,6 +888,14 @@ class CaptureManager(
                 overlayRenderer.clearCaches()
             } catch (e: Exception) {
                 Log.e(TAG, "Error clearing overlay caches", e)
+            }
+
+            // Clear change detector
+            try {
+                changeDetector?.clear()
+                changeDetector = null
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing change detector", e)
             }
 
             // Clear all state variables

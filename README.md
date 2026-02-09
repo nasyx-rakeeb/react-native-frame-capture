@@ -5,11 +5,12 @@
 [![license](https://img.shields.io/npm/l/react-native-frame-capture.svg)](https://github.com/nasyx-rakeeb/react-native-frame-capture/blob/main/LICENSE)
 [![platform](https://img.shields.io/badge/platform-Android-green.svg)](https://www.android.com/)
 
-Reliable screen capture for React Native Android. Capture frames at intervals with customizable overlays and storage options.
+Reliable screen capture for React Native Android. Capture frames at intervals or when screen content changes, with customizable overlays and storage options.
 
 ## Features
 
 - 📸 **Interval-based capture** - Capture frames at configurable intervals (100ms - 60s)
+- 🔍 **Change detection mode** - Capture only when screen content changes (NEW!)
 - 🎨 **Customizable overlays** - Add text and image overlays with template variables
 - 💾 **Flexible storage** - Save to app-specific, public, or custom directories
 - 🔄 **Background capture** - Continues capturing when app is minimized (foreground service)

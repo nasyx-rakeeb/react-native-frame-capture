@@ -17,11 +17,75 @@ interface CaptureOptions {
 
 ## CaptureConfig
 
+The `capture` option supports two modes: **interval** and **change-detection**.
+
+### Interval Mode (Default)
+
+Captures frames at fixed time intervals.
+
 ```typescript
 interface CaptureConfig {
+  mode?: 'interval'; // Optional, defaults to 'interval'
   interval: number; // Milliseconds between captures (100-60000)
 }
 ```
+
+**Example:**
+
+```typescript
+capture: {
+  mode: 'interval', // Optional
+  interval: 1000,   // Capture every second
+}
+```
+
+### Change Detection Mode
+
+Captures frames only when screen content changes. Useful for reducing storage when the screen is mostly static.
+
+```typescript
+interface CaptureConfig {
+  mode: 'change-detection';
+  changeDetection?: ChangeDetectionConfig;
+}
+
+interface ChangeDetectionConfig {
+  threshold?: number; // Percentage of pixels that must change (1-100, default: 10)
+  minInterval?: number; // Minimum ms between captures (100-60000, default: 500)
+  maxInterval?: number; // Maximum ms before forced capture (0 = disabled, default: 0)
+  sampleRate?: number; // Pixel sampling rate for performance (1-100, default: 10)
+  detectionRegion?: CaptureRegion; // Optional region to monitor for changes
+}
+```
+
+**Example:**
+
+```typescript
+capture: {
+  mode: 'change-detection',
+  changeDetection: {
+    threshold: 15,      // Capture when 15% of screen changes
+    minInterval: 500,   // Check every 500ms
+    maxInterval: 5000,  // Force capture at least every 5s
+  },
+}
+```
+
+**How it works:**
+
+1. Polls the screen at `minInterval` rate
+2. Compares current frame with previous using pixel sampling
+3. Captures if change percentage ≥ `threshold` OR `maxInterval` reached
+4. First frame is always captured
+
+**Threshold guidelines:**
+
+| Threshold | Use Case                                   |
+| --------- | ------------------------------------------ |
+| 5-10%     | Very sensitive, captures most interactions |
+| 15-25%    | Balanced, captures meaningful UI changes   |
+| 50%+      | Only major transitions                     |
+| 90%+      | Only full-screen replacements              |
 
 ## ImageConfig
 

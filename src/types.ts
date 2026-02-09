@@ -50,6 +50,7 @@ export enum CaptureEventType {
   CAPTURE_PAUSE = 'onCapturePause',
   CAPTURE_RESUME = 'onCaptureResume',
   OVERLAY_ERROR = 'onOverlayError',
+  CHANGE_DETECTED = 'onChangeDetected',
 }
 
 // ============================================================================
@@ -70,6 +71,11 @@ export type PositionPreset =
   | 'bottom-left'
   | 'bottom-right'
   | 'center';
+
+/**
+ * Capture mode type
+ */
+export type CaptureMode = 'interval' | 'change-detection';
 
 // ============================================================================
 // Capture Configuration
@@ -125,11 +131,31 @@ export interface NotificationOptions {
 }
 
 /**
+ * Change detection configuration
+ */
+export interface ChangeDetectionConfig {
+  /** Minimum percentage of pixels that must change to trigger capture (0-100) */
+  threshold: number;
+  /** Minimum milliseconds between captures even with rapid changes (default: 500) */
+  minInterval?: number;
+  /** Maximum milliseconds between captures regardless of changes (0 = disabled, default: 0) */
+  maxInterval?: number;
+  /** Pixel sampling rate for performance (1 = every pixel, 16 = every 16th pixel, default: 16) */
+  sampleRate?: number;
+  /** Region of interest for change detection (default: full screen) */
+  detectionRegion?: CaptureRegion;
+}
+
+/**
  * Capture behavior configuration
  */
 export interface CaptureConfig {
-  /** Milliseconds between captures (100-60000) */
-  interval: number;
+  /** Capture mode: 'interval' or 'change-detection' (default: 'interval') */
+  mode?: CaptureMode;
+  /** Milliseconds between captures (100-60000) - required when mode is 'interval' */
+  interval?: number;
+  /** Change detection settings - required when mode is 'change-detection' */
+  changeDetection?: ChangeDetectionConfig;
 }
 
 /**
@@ -300,6 +326,7 @@ import type {
   CapturePauseEvent,
   CaptureResumeEvent,
   OverlayErrorEvent,
+  ChangeDetectedEvent,
 } from './NativeFrameCapture';
 
 export type {
@@ -311,6 +338,7 @@ export type {
   CapturePauseEvent,
   CaptureResumeEvent,
   OverlayErrorEvent,
+  ChangeDetectedEvent,
 };
 
 /**

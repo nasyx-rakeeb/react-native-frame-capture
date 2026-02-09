@@ -67,3 +67,48 @@ export const MAX_QUALITY = 100;
  * @deprecated Use advanced.storage.warningThreshold in CaptureOptions instead
  */
 export const STORAGE_WARNING_THRESHOLD = 100 * 1024 * 1024; // 100MB
+
+// =============================================================================
+// Change Detection Mode Constants
+// =============================================================================
+
+/**
+ * Default change detection threshold (percentage of pixels changed)
+ */
+export const DEFAULT_CHANGE_THRESHOLD = 5;
+
+/**
+ * Minimum change detection threshold
+ */
+export const MIN_CHANGE_THRESHOLD = 0;
+
+/**
+ * Maximum change detection threshold
+ */
+export const MAX_CHANGE_THRESHOLD = 100;
+
+/**
+ * Default minimum interval between captures in change detection mode (ms)
+ */
+export const DEFAULT_CHANGE_MIN_INTERVAL = 500;
+
+/**
+ * Default maximum interval between captures in change detection mode (ms)
+ * 0 means disabled - no forced captures when screen is static
+ */
+export const DEFAULT_CHANGE_MAX_INTERVAL = 0;
+
+/**
+ * Default sample rate for change detection (every Nth pixel)
+ */
+export const DEFAULT_CHANGE_SAMPLE_RATE = 16;
+
+/**
+ * Minimum sample rate (1 = every pixel)
+ */
+export const MIN_CHANGE_SAMPLE_RATE = 1;
+
+/**
+ * Maximum sample rate
+ */
+export const MAX_CHANGE_SAMPLE_RATE = 64;

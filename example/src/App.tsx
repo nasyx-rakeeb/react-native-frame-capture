@@ -35,6 +35,14 @@ export default function App() {
   );
   const [excludeStatusBar, setExcludeStatusBar] = useState(false);
 
+  // Capture mode configuration
+  const [captureMode, setCaptureMode] = useState<
+    'interval' | 'change-detection'
+  >('interval');
+  const [changeThreshold, setChangeThreshold] = useState('10');
+  const [changeMinInterval, setChangeMinInterval] = useState('500');
+  const [changeMaxInterval, setChangeMaxInterval] = useState('0');
+
   // Overlay configuration
   const [enableTextOverlay, setEnableTextOverlay] = useState(false);
   const [textContent, setTextContent] = useState('Frame {frameNumber}');
@@ -168,9 +176,20 @@ export default function App() {
       }
 
       await FrameCapture.startCapture({
-        capture: {
-          interval: parseInt(interval, 10),
-        },
+        capture:
+          captureMode === 'interval'
+            ? {
+                mode: 'interval',
+                interval: parseInt(interval, 10),
+              }
+            : {
+                mode: 'change-detection',
+                changeDetection: {
+                  threshold: parseFloat(changeThreshold),
+                  minInterval: parseInt(changeMinInterval, 10),
+                  maxInterval: parseInt(changeMaxInterval, 10),
+                },
+              },
         image: {
           quality: parseInt(quality, 10),
           format,
@@ -183,7 +202,10 @@ export default function App() {
         overlays: overlays.length > 0 ? overlays : undefined,
         notification: {
           title: 'Screen Capture Active',
-          description: 'Captured {frameCount} frames',
+          description:
+            captureMode === 'interval'
+              ? 'Captured {frameCount} frames'
+              : 'Change detection mode - {frameCount} frames',
           showFrameCount: true,
           updateInterval: 10,
           showPauseAction: true,
@@ -291,16 +313,99 @@ export default function App() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configuration</Text>
 
+        {/* Capture Mode Selection */}
         <View style={styles.configRow}>
-          <Text style={styles.label}>Interval (ms):</Text>
-          <TextInput
-            style={styles.input}
-            value={interval}
-            onChangeText={setInterval}
-            keyboardType="numeric"
-            editable={!isCapturing}
-          />
+          <Text style={styles.label}>Capture Mode:</Text>
+          <View style={styles.formatButtons}>
+            <TouchableOpacity
+              style={[
+                styles.formatButton,
+                captureMode === 'interval' && styles.formatButtonActive,
+              ]}
+              onPress={() => setCaptureMode('interval')}
+              disabled={isCapturing}
+            >
+              <Text
+                style={[
+                  styles.formatButtonText,
+                  captureMode === 'interval' && styles.formatButtonTextActive,
+                ]}
+              >
+                Interval
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.formatButton,
+                captureMode === 'change-detection' && styles.formatButtonActive,
+              ]}
+              onPress={() => setCaptureMode('change-detection')}
+              disabled={isCapturing}
+            >
+              <Text
+                style={[
+                  styles.formatButtonText,
+                  captureMode === 'change-detection' &&
+                    styles.formatButtonTextActive,
+                ]}
+              >
+                Change Detection
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Interval Mode Settings */}
+        {captureMode === 'interval' && (
+          <View style={styles.configRow}>
+            <Text style={styles.label}>Interval (ms):</Text>
+            <TextInput
+              style={styles.input}
+              value={interval}
+              onChangeText={setInterval}
+              keyboardType="numeric"
+              editable={!isCapturing}
+            />
+          </View>
+        )}
+
+        {/* Change Detection Mode Settings */}
+        {captureMode === 'change-detection' && (
+          <>
+            <View style={styles.configRow}>
+              <Text style={styles.label}>Threshold (%):</Text>
+              <TextInput
+                style={styles.input}
+                value={changeThreshold}
+                onChangeText={setChangeThreshold}
+                keyboardType="numeric"
+                placeholder="1-100"
+                editable={!isCapturing}
+              />
+            </View>
+            <View style={styles.configRow}>
+              <Text style={styles.label}>Min Interval (ms):</Text>
+              <TextInput
+                style={styles.input}
+                value={changeMinInterval}
+                onChangeText={setChangeMinInterval}
+                keyboardType="numeric"
+                editable={!isCapturing}
+              />
+            </View>
+            <View style={styles.configRow}>
+              <Text style={styles.label}>Max Interval (ms):</Text>
+              <TextInput
+                style={styles.input}
+                value={changeMaxInterval}
+                onChangeText={setChangeMaxInterval}
+                keyboardType="numeric"
+                placeholder="0 = no max"
+                editable={!isCapturing}
+              />
+            </View>
+          </>
+        )}
 
         <View style={styles.configRow}>
           <Text style={styles.label}>Quality (0-100):</Text>
