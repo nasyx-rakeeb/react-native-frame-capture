@@ -46,6 +46,8 @@ export function addListener(
       return NativeFrameCapture.onCaptureResume(callback as any);
     case CaptureEventType.OVERLAY_ERROR:
       return NativeFrameCapture.onOverlayError(callback as any);
+    case CaptureEventType.CHANGE_DETECTED:
+      return NativeFrameCapture.onChangeDetected(callback as any);
     default:
       throw new Error(`Unknown event type: ${event}`);
   }
