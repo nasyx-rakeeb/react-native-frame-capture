@@ -86,3 +86,7 @@ android/generated
 
 # React Native Nitro Modules
 nitrogen/
+
+# Local Build Logs
+*.log
+build_output*.txt
