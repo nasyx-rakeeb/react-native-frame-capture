@@ -1,6 +1,6 @@
 {
   "name": "react-native-frame-capture",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Reliable screen capture for React Native Android. Capture frames at intervals with customizable overlays and storage options.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
