@@ -39,8 +39,9 @@
     "test": "jest --passWithNoTests",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "prepare": "bob build",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib plugin/build",
+    "prepare": "bob build && npm run build:plugin",
+    "build:plugin": "tsc --build plugin/tsconfig.json",
     "release": "release-it --only-version",
     "run-dev": "cd example/android && gradlew clean && cd ../../ && yarn prepare && yarn example android"
   },
