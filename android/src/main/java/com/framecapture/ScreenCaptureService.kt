@@ -347,6 +347,11 @@ class ScreenCaptureService : Service() {
     private fun stopCapture(reason: String = CaptureManager.STOP_REASON_MANUAL) {
         cancelAutoStop()
         try {
+            // Remove the foreground notification (it's setOngoing, so it
+            // survives unless explicitly dismissed when the service stops)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            notificationManager = null
+
             // Notify module first to update state
             FrameCaptureModule?.updateStateFromService(isStopped = true)
 
