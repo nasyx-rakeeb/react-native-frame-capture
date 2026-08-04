@@ -156,6 +156,12 @@ export interface CaptureConfig {
   interval?: number;
   /** Change detection settings - required when mode is 'change-detection' */
   changeDetection?: ChangeDetectionConfig;
+  /**
+   * Milliseconds after which capture stops automatically (0 or undefined = disabled).
+   * Scheduled natively, so it fires even when the app is in the background and
+   * JS timers are frozen. Wall-clock from capture start; pausing does not extend it.
+   */
+  autoStopTimeout?: number;
 }
 
 /**
@@ -328,6 +334,15 @@ import type {
   OverlayErrorEvent,
   ChangeDetectedEvent,
 } from './NativeFrameCapture';
+
+/**
+ * Reason a capture session stopped
+ */
+export type CaptureStopReason =
+  | 'manual'
+  | 'auto_stop_timeout'
+  | 'error'
+  | 'system';
 
 export type {
   FrameCapturedEvent,

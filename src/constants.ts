@@ -53,6 +53,11 @@ export const MIN_INTERVAL = 100;
 export const MAX_INTERVAL = 60000;
 
 /**
+ * Minimum auto-stop timeout (milliseconds)
+ */
+export const MIN_AUTO_STOP_TIMEOUT = 1000;
+
+/**
  * Minimum image quality value
  */
 export const MIN_QUALITY = 0;

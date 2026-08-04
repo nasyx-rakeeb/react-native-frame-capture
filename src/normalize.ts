@@ -13,6 +13,7 @@ export interface NativeCaptureOptions {
   // Capture mode
   captureMode: CaptureMode;
   interval?: number;
+  autoStopTimeout?: number;
   // Change detection options (flat)
   changeThreshold?: number;
   changeMinInterval?: number;
@@ -64,6 +65,7 @@ export function normalizeOptions(
     // Capture mode
     captureMode,
     interval: capture.interval,
+    autoStopTimeout: capture.autoStopTimeout,
 
     // Change detection config (flattened)
     changeThreshold: changeDetection?.threshold,

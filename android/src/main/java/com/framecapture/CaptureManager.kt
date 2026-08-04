@@ -96,6 +96,11 @@ class CaptureManager(
     companion object {
         private const val TAG = "CaptureManager"
         private const val VIRTUAL_DISPLAY_NAME = "ScreenCapture"
+
+        const val STOP_REASON_MANUAL = "manual"
+        const val STOP_REASON_AUTO_STOP_TIMEOUT = "auto_stop_timeout"
+        const val STOP_REASON_ERROR = "error"
+        const val STOP_REASON_SYSTEM = "system"
     }
 
     init {
@@ -183,6 +188,7 @@ class CaptureManager(
                     putString("sessionId", sessionId ?: "")
                     putInt("totalFrames", frameCount)
                     putDouble("duration", duration.toDouble())
+                    putString("reason", STOP_REASON_SYSTEM)
                 }
 
                 eventEmitter(Constants.EVENT_CAPTURE_STOP, params)
@@ -702,7 +708,7 @@ class CaptureManager(
      * Stops periodic capture, emits final statistics (total frames, duration),
      * and triggers cleanup of all resources.
      */
-    fun stop() {
+    fun stop(reason: String = STOP_REASON_MANUAL) {
         try {
             if (!isCapturing) {
                 return
@@ -722,7 +728,7 @@ class CaptureManager(
             } else {
                 0L
             }
-            eventEmitterManager.emitCaptureStop(currentSessionId, frameCount, duration)
+            eventEmitterManager.emitCaptureStop(currentSessionId, frameCount, duration, reason)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping capture", e)

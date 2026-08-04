@@ -189,6 +189,7 @@ data class NotificationOptions(
 data class CaptureOptions(
     val captureMode: CaptureMode = CaptureMode.INTERVAL,
     val interval: Long = com.framecapture.Constants.DEFAULT_INTERVAL,
+    val autoStopTimeout: Long = com.framecapture.Constants.DEFAULT_AUTO_STOP_TIMEOUT,
     val changeDetection: ChangeDetectionConfig? = null,
     val quality: Int = com.framecapture.Constants.DEFAULT_QUALITY,
     val format: String = com.framecapture.Constants.DEFAULT_FORMAT,
@@ -257,6 +258,7 @@ data class CaptureOptions(
             return CaptureOptions(
                 captureMode = captureMode,
                 interval = if (map.hasKey("interval")) map.getDouble("interval").toLong() else com.framecapture.Constants.DEFAULT_INTERVAL,
+                autoStopTimeout = if (map.hasKey("autoStopTimeout")) map.getDouble("autoStopTimeout").toLong() else com.framecapture.Constants.DEFAULT_AUTO_STOP_TIMEOUT,
                 changeDetection = changeDetection,
                 quality = if (map.hasKey("quality")) map.getInt("quality") else com.framecapture.Constants.DEFAULT_QUALITY,
                 format = if (map.hasKey("format")) map.getString("format") ?: com.framecapture.Constants.DEFAULT_FORMAT else com.framecapture.Constants.DEFAULT_FORMAT,

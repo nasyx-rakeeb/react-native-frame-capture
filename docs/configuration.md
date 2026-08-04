@@ -48,6 +48,31 @@ interface CaptureConfig {
   mode: 'change-detection';
   changeDetection?: ChangeDetectionConfig;
 }
+```
+
+### Auto-Stop Timeout
+
+Capture can automatically stop after a given wall-clock duration. The timer runs **natively**, so it still fires when the app is in the background and JS timers are suspended.
+
+```typescript
+interface CaptureConfig {
+  autoStopTimeout?: number; // Milliseconds until capture stops automatically (0 or undefined = manual stop)
+}
+```
+
+**Notes:**
+
+- Minimum value: `1000` (1 second). Values below this or negative throw `INVALID_OPTIONS`.
+- The timer is scheduled when capture **starts** and is not extended by `pauseCapture()`/`resumeCapture()`; pauses don't add extra runtime.
+- When the timeout fires, capture stops and the `onCaptureStop` event payload includes `reason: 'auto_stop_timeout'`. Manual stops produce `reason: 'manual'`; error-induced stops produce other reason values.
+
+**Example:**
+
+```typescript
+capture: {
+  interval: 1000,
+  autoStopTimeout: 30_000, // stop exactly 30 seconds after capture started
+}
 
 interface ChangeDetectionConfig {
   threshold?: number; // Percentage of pixels that must change (1-100, default: 10)

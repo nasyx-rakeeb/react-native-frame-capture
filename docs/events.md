@@ -48,8 +48,11 @@ interface CaptureStopEvent {
   sessionId: string; // Session ID
   totalFrames: number; // Total frames captured
   duration: number; // Session duration in milliseconds
+  reason?: 'manual' | 'auto_stop_timeout' | 'error' | 'system'; // Why capture stopped
 }
 ```
+
+`manual` = `stopCapture()` was called. `auto_stop_timeout` = the `capture.autoStopTimeout` elapsed (fired by the native timer, works while backgrounded). `system` = MediaProjection revoked/killed. `error` = an unrecoverable failure.
 
 ### StorageWarningEvent
 

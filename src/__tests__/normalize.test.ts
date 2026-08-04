@@ -121,5 +121,27 @@ describe('normalize', () => {
       expect(result.notification).toBeDefined();
       expect(result.notification?.title).toBe('Recording');
     });
+
+    it('should pass autoStopTimeout through to native options', () => {
+      const options: CaptureOptions = {
+        capture: { interval: 1000, autoStopTimeout: 30000 },
+        image: { quality: 80, format: 'jpeg' },
+      };
+
+      const result = normalizeOptions(options);
+
+      expect(result.autoStopTimeout).toBe(30000);
+    });
+
+    it('should omit autoStopTimeout when not set', () => {
+      const options: CaptureOptions = {
+        capture: { interval: 1000 },
+        image: { quality: 80, format: 'jpeg' },
+      };
+
+      const result = normalizeOptions(options);
+
+      expect(result.autoStopTimeout).toBeUndefined();
+    });
   });
 });

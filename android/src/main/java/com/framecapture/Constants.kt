@@ -18,6 +18,10 @@ object Constants {
     const val MAX_INTERVAL = 60000L
     const val DEFAULT_INTERVAL = 1000L
 
+    // Auto-stop timeout constraints (in milliseconds)
+    const val MIN_AUTO_STOP_TIMEOUT = 1000L
+    const val DEFAULT_AUTO_STOP_TIMEOUT = 0L            // 0 = disabled (manual stop)
+
     // Image quality constraints (0-100)
     const val MIN_QUALITY = 0
     const val MAX_QUALITY = 100

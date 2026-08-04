@@ -60,6 +60,15 @@ object ValidationUtils {
             )
         }
 
+        // Validate auto-stop timeout (0 = disabled)
+        if (options.autoStopTimeout != com.framecapture.Constants.DEFAULT_AUTO_STOP_TIMEOUT &&
+            options.autoStopTimeout < com.framecapture.Constants.MIN_AUTO_STOP_TIMEOUT) {
+            errors.add(
+                "autoStopTimeout must be 0 (disabled) or >= ${com.framecapture.Constants.MIN_AUTO_STOP_TIMEOUT} milliseconds. " +
+                "Provided: ${options.autoStopTimeout}ms"
+            )
+        }
+
         // Validate quality
         if (options.quality < com.framecapture.Constants.MIN_QUALITY || options.quality > com.framecapture.Constants.MAX_QUALITY) {
             errors.add(

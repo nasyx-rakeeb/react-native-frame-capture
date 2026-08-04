@@ -68,12 +68,13 @@ class CaptureEventEmitter(
      * @param totalFrames Total number of frames captured
      * @param duration Session duration in milliseconds
      */
-    fun emitCaptureStop(sessionId: String, totalFrames: Int, duration: Long) {
+    fun emitCaptureStop(sessionId: String, totalFrames: Int, duration: Long, reason: String = "manual") {
         try {
             val params = Arguments.createMap().apply {
                 putString("sessionId", sessionId)
                 putInt("totalFrames", totalFrames)
                 putDouble("duration", duration.toDouble())
+                putString("reason", reason)
             }
             eventEmitter(Constants.EVENT_CAPTURE_STOP, params)
         } catch (e: Exception) {

@@ -30,6 +30,8 @@ export type CaptureStopEvent = {
   sessionId: string;
   totalFrames: number;
   duration: number;
+  /** Why capture stopped: manual | auto_stop_timeout | error | system */
+  reason?: string;
 };
 
 export type CaptureStartEvent = {

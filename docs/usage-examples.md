@@ -1,23 +1,113 @@
 # Usage Examples
 
-Practical examples for common use cases.
+Practical examples for common use cases. All examples assume:
+
+```typescript
+import {
+  requestPermission,
+  startCapture,
+  stopCapture,
+  addListener,
+  CaptureEventType,
+} from 'react-native-frame-capture';
+```
+
+> **Always call `await requestPermission()` before `startCapture`**, otherwise start rejects with `PERMISSION_DENIED`.
 
 ## Basic Capture
 
+Capture one frame per second and stop it manually.
+
 ```typescript
-await FrameCapture.startCapture({
-  capture: { interval: 1000 },
-  image: { quality: 80, format: 'jpeg' },
-  storage: { saveFrames: true },
-});
+import { useEffect, useState } from 'react';
+
+export default function ScreenRecorder() {
+  const [frames, setFrames] = useState<string[]>([]);
+
+  useEffect(() => {
+    const sub = addListener(
+      CaptureEventType.FRAME_CAPTURED,
+      (event) => {
+        setFrames((prev) => [...prev, event.filePath]);
+      }
+    );
+    return () => sub.remove(); // always remove listeners on unmount
+  }, []);
+
+  const start = async () => {
+    await requestPermission();
+
+    await startCapture({
+      capture: { interval: 1000 },
+      image: { quality: 80, format: 'jpeg' },
+      storage: { saveFrames: true, location: 'private' },
+    });
+  };
+
+  const stop = async () => {
+    await stopCapture();
+    console.log(`Saved ${frames.length} frames`);
+  };
+
+  // ... UI buttons calling start() / stop()
+}
+```
+
+## Auto-Stop After a Duration
+
+Capture for exactly 30 seconds and let native code stop it — works even when the app is in the background (JS timers don't). Use the `reason` field to distinguish a timeout stop from a manual one.
+
+```typescript
+useEffect(() => {
+  const stopSub = addListener(
+    CaptureEventType.CAPTURE_STOP,
+    (event) => {
+      if (event.reason === 'auto_stop_timeout') {
+        console.log('Capture auto-stopped');
+      } else {
+        console.log('Capture stopped manually');
+      }
+    }
+  );
+  return () => stopSub.remove();
+}, []);
+
+const start = async () => {
+  await requestPermission();
+
+  await startCapture({
+    capture: {
+      interval: 1000,
+      autoStopTimeout: 30_000, // stop 30s after capture starts
+    },
+    image: { quality: 80, format: 'jpeg' },
+    storage: { saveFrames: true, location: 'private' },
+  });
+
+  // optional: release the app before the timeout fires; the native
+  // foreground service keeps capturing and stops itself on schedule
+};
 ```
 
 ## Change Detection Capture
 
-Capture frames only when screen content changes:
+Capture only when screen content changes (with the same 30s auto-stop).
 
 ```typescript
-await FrameCapture.startCapture({
+useEffect(() => {
+  // Optional: monitor change detection for debugging
+  const changeSub = addListener(
+    CaptureEventType.CHANGE_DETECTED,
+    (event) => {
+      console.log(
+        `Change: ${event.changePercent.toFixed(1)}%, captured: ${event.captured}`
+      );
+    }
+  );
+  return () => changeSub.remove();
+}, []);
+
+await startCapture({
   capture: {
     mode: 'change-detection',
     changeDetection: {
@@ -25,26 +115,17 @@ await FrameCapture.startCapture({
       minInterval: 500, // Poll every 500ms
       maxInterval: 5000, // Force capture at least every 5s
     },
+    autoStopTimeout: 30_000,
   },
   image: { quality: 80, format: 'jpeg' },
-  storage: { saveFrames: true },
+  storage: { saveFrames: true, location: 'private' },
 });
-
-// Optional: Monitor change detection for debugging
-FrameCapture.addListener(
-  FrameCapture.CaptureEventType.CHANGE_DETECTED,
-  (event) => {
-    console.log(
-      `Change: ${event.changePercent.toFixed(1)}%, captured: ${event.captured}`
-    );
-  }
-);
 ```
 
 ## Capture with Text Overlay
 
 ```typescript
-await FrameCapture.startCapture({
+await startCapture({
   capture: { interval: 1000 },
   image: { quality: 80, format: 'jpeg' },
   overlays: [
@@ -67,7 +148,7 @@ await FrameCapture.startCapture({
 ## Capture with Image Watermark
 
 ```typescript
-await FrameCapture.startCapture({
+await startCapture({
   capture: { interval: 1000 },
   image: { quality: 80, format: 'jpeg' },
   overlays: [
@@ -85,7 +166,7 @@ await FrameCapture.startCapture({
 ## Capture Custom Region
 
 ```typescript
-await FrameCapture.startCapture({
+await startCapture({
   capture: { interval: 1000 },
   image: {
     quality: 80,
@@ -104,7 +185,7 @@ await FrameCapture.startCapture({
 ## Capture with Resolution Scaling
 
 ```typescript
-await FrameCapture.startCapture({
+await startCapture({
   capture: { interval: 1000 },
   image: {
     quality: 80,
@@ -117,7 +198,7 @@ await FrameCapture.startCapture({
 ## Custom Notification
 
 ```typescript
-await FrameCapture.startCapture({
+await startCapture({
   capture: { interval: 1000 },
   image: { quality: 80, format: 'jpeg' },
   notification: {
@@ -130,4 +211,41 @@ await FrameCapture.startCapture({
     showStopAction: true,
   },
 });
+```
+
+## Handle Errors
+
+```typescript
+useEffect(() => {
+  const errorSub = addListener(
+    CaptureEventType.CAPTURE_ERROR,
+    (event) => {
+      console.error(`Capture error [${event.code}]: ${event.message}`);
+    }
+  );
+
+  const stopSub = addListener(
+    CaptureEventType.CAPTURE_STOP,
+    (event) => {
+      console.log(
+        `Stopped after ${event.totalFrames} frames (${event.reason ?? 'manual'})`
+      );
+    }
+  );
+
+  return () => {
+    errorSub.remove();
+    stopSub.remove();
+  };
+}, []);
+```
+
+## Cleanup Temporary Frames
+
+Frames captured with `saveFrames: false` are stored temporarily. Clean them up when you're done:
+
+```typescript
+import { cleanupTempFrames } from 'react-native-frame-capture';
+
+await cleanupTempFrames();
 ```

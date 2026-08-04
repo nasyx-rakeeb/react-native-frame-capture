@@ -11,6 +11,7 @@ Reliable screen capture for React Native Android. Capture frames at intervals or
 
 - 📸 **Interval-based capture** - Capture frames at configurable intervals (100ms - 60s)
 - 🔍 **Change detection mode** - Capture only when screen content changes (NEW!)
+- ⏱️ **Auto-stop timeout** - Stop capture automatically after a set duration, works while backgrounded
 - 🎨 **Customizable overlays** - Add text and image overlays with template variables
 - 💾 **Flexible storage** - Save to app-specific, public, or custom directories
 - 🔄 **Background capture** - Continues capturing when app is minimized (foreground service)
@@ -82,10 +83,17 @@ npx expo run:android
 ## Quick Start
 
 ```typescript
-import * as FrameCapture from 'react-native-frame-capture';
+import {
+  requestPermission,
+  startCapture,
+  stopCapture,
+  addListener,
+  CaptureEventType,
+  PermissionStatus,
+} from 'react-native-frame-capture';
 import { Platform, PermissionsAndroid } from 'react-native';
 
-// 1. Request notification permission (Android 13+)
+// 1. Request notification permission (Android 13+, for the foreground service)
 if (Platform.OS === 'android' && Platform.Version >= 33) {
   await PermissionsAndroid.request(
     PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
@@ -93,13 +101,22 @@ if (Platform.OS === 'android' && Platform.Version >= 33) {
 }
 
 // 2. Request screen capture permission
-const permissionStatus = await FrameCapture.requestPermission();
+const permissionStatus = await requestPermission();
 
-if (permissionStatus === FrameCapture.PermissionStatus.GRANTED) {
-  // 3. Start capturing
-  await FrameCapture.startCapture({
+if (permissionStatus === PermissionStatus.GRANTED) {
+  // 3. Attach listeners BEFORE starting capture
+  const frameSub = addListener(
+    CaptureEventType.FRAME_CAPTURED,
+    (event) => {
+      console.log('Frame captured:', event.filePath);
+    }
+  );
+
+  // 4. Start capturing (auto-stops after 30 seconds, even if backgrounded)
+  await startCapture({
     capture: {
       interval: 1000, // Capture every second
+      autoStopTimeout: 30_000, // Optional: stop natively after 30s
     },
     image: {
       quality: 80,
@@ -111,17 +128,9 @@ if (permissionStatus === FrameCapture.PermissionStatus.GRANTED) {
     },
   });
 
-  // 4. Listen for captured frames
-  const subscription = FrameCapture.addListener(
-    FrameCapture.CaptureEventType.FRAME_CAPTURED,
-    (event) => {
-      console.log('Frame captured:', event.filePath);
-    }
-  );
-
-  // 5. Stop capturing when done
-  await FrameCapture.stopCapture();
-  subscription.remove();
+  // 5. Later, stop manually if still running
+  await stopCapture();
+  frameSub.remove();
 }
 ```
 

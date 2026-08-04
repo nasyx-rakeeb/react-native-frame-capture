@@ -43,6 +43,9 @@ export default function App() {
   const [changeMinInterval, setChangeMinInterval] = useState('500');
   const [changeMaxInterval, setChangeMaxInterval] = useState('0');
 
+  // Auto-stop: 0 = disabled, otherwise mm:ss until native auto-stop fires
+  const [autoStopTimeout, setAutoStopTimeout] = useState('0');
+
   // Overlay configuration
   const [enableTextOverlay, setEnableTextOverlay] = useState(false);
   const [textContent, setTextContent] = useState('Frame {frameNumber}');
@@ -118,7 +121,7 @@ export default function App() {
           setIsPaused(false);
           Alert.alert(
             'Capture Stopped',
-            `Captured ${event.totalFrames} frames in ${(event.duration / 1000).toFixed(1)}s`
+            `Captured ${event.totalFrames} frames in ${(event.duration / 1000).toFixed(1)}s (reason: ${event.reason ?? 'manual'})`
           );
         }
       ),
@@ -175,21 +178,25 @@ export default function App() {
         });
       }
 
+      const autoStopMs = parseInt(autoStopTimeout, 10) || 0;
+
       await FrameCapture.startCapture({
-        capture:
-          captureMode === 'interval'
+        capture: {
+          ...(captureMode === 'interval'
             ? {
-                mode: 'interval',
+                mode: 'interval' as const,
                 interval: parseInt(interval, 10),
               }
             : {
-                mode: 'change-detection',
+                mode: 'change-detection' as const,
                 changeDetection: {
                   threshold: parseFloat(changeThreshold),
                   minInterval: parseInt(changeMinInterval, 10),
                   maxInterval: parseInt(changeMaxInterval, 10),
                 },
-              },
+              }),
+          ...(autoStopMs > 0 ? { autoStopTimeout: autoStopMs } : {}),
+        },
         image: {
           quality: parseInt(quality, 10),
           format,
@@ -519,6 +526,24 @@ export default function App() {
             disabled={isCapturing}
           />
         </View>
+
+        <View style={styles.configRow}>
+          <Text style={styles.label}>
+            Auto-Stop Timeout (ms, 0 = manual stop only):
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={autoStopTimeout}
+            onChangeText={setAutoStopTimeout}
+            keyboardType="numeric"
+            placeholder="e.g. 30000 for 30 seconds"
+            editable={!isCapturing}
+          />
+          <Text style={styles.hintText}>
+            Stops capture natively even when the app is backgrounded. Pausing
+            does not extend it.
+          </Text>
+        </View>
       </View>
 
       {/* Overlay Section */}
@@ -633,7 +658,9 @@ export default function App() {
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>React Native Frame Capture v1.0.0</Text>
+        <Text style={styles.footerText}>
+          React Native Frame Capture Example
+        </Text>
       </View>
     </ScrollView>
   );
@@ -813,6 +840,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  hintText: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 4,
   },
   footer: {
     padding: 20,

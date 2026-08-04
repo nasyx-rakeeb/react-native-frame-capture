@@ -2,6 +2,8 @@ package com.framecapture
 
 import android.app.Service
 import android.content.Intent
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.util.Log
 import com.facebook.react.bridge.Arguments
@@ -9,6 +11,7 @@ import com.facebook.react.bridge.WritableMap
 import com.framecapture.models.CaptureOptions
 import com.framecapture.models.NotificationOptions
 import com.framecapture.service.CaptureNotificationManager
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Foreground service for reliable background screen capture
@@ -93,6 +96,12 @@ class ScreenCaptureService : Service() {
     // Paused state for notification updates
     private var isPaused: Boolean = false
 
+    // Auto-stop timer (wall-clock since capture start, independent of pauses)
+    private val autoStopHandlerThread: HandlerThread = HandlerThread("AutoStopThread").apply { start() }
+    private val autoStopHandler: Handler = Handler(autoStopHandlerThread.looper)
+    private var autoStopRunnable: Runnable? = null
+    private val autoStopScheduled = AtomicBoolean(false)
+
     override fun onCreate() {
         super.onCreate()
 
@@ -162,12 +171,17 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onDestroy() {
+        // Ensure any pending auto-stop timer is dropped before stopping
+        cancelAutoStop()
+
         // Ensure capture is stopped and resources are released
         try {
             stopCapture()
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping capture in onDestroy", e)
         }
+
+        autoStopHandlerThread.quitSafely()
 
         super.onDestroy()
     }
@@ -275,6 +289,9 @@ class ScreenCaptureService : Service() {
             // Start capture
             captureManager?.start()
 
+            // Schedule auto-stop if configured
+            scheduleAutoStop(captureOptions.autoStopTimeout)
+
             // Reset counters and state for new session
             frameCounter = 0
             resetFrameCount()
@@ -287,18 +304,54 @@ class ScreenCaptureService : Service() {
     }
 
     /**
+     * Schedules automatic capture stop after the given wall-clock timeout.
+     *
+     * Uses a Handler on a background thread: the timer fires regardless of JS
+     * being suspended, and pause/resume do not extend the timeout.
+     *
+     * @param timeout Timeout in milliseconds (0 = disabled)
+     */
+    private fun scheduleAutoStop(timeout: Long) {
+        cancelAutoStop()
+        if (timeout <= 0) return
+
+        val runnable = Runnable {
+            if (autoStopScheduled.compareAndSet(true, false)) {
+                Log.i(TAG, "Auto-stop timeout reached, stopping capture")
+                stopCapture(CaptureManager.STOP_REASON_AUTO_STOP_TIMEOUT)
+            }
+        }
+
+        autoStopRunnable = runnable
+        autoStopScheduled.set(true)
+        autoStopHandler.postDelayed(runnable, timeout)
+    }
+
+    /**
+     * Cancels any pending auto-stop timer.
+     */
+    private fun cancelAutoStop() {
+        autoStopRunnable?.let { autoStopHandler.removeCallbacks(it) }
+        autoStopRunnable = null
+        autoStopScheduled.set(false)
+    }
+
+    /**
      * Stops screen capture and cleans up all resources
      *
      * Notifies the module, stops capture, releases CaptureManager,
      * and resets all state variables.
+     *
+     * @param reason Why capture stopped (manual, error, or auto-stop timeout)
      */
-    private fun stopCapture() {
+    private fun stopCapture(reason: String = CaptureManager.STOP_REASON_MANUAL) {
+        cancelAutoStop()
         try {
             // Notify module first to update state
             FrameCaptureModule?.updateStateFromService(isStopped = true)
 
             // Stop capture (emits onCaptureStop event)
-            captureManager?.stop()
+            captureManager?.stop(reason)
 
             // Cleanup resources
             captureManager?.cleanup()

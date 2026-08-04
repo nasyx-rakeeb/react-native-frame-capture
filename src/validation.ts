@@ -15,6 +15,7 @@ import {
   DEFAULT_CHANGE_MIN_INTERVAL,
   MIN_CHANGE_SAMPLE_RATE,
   MAX_CHANGE_SAMPLE_RATE,
+  MIN_AUTO_STOP_TIMEOUT,
 } from './constants';
 import type { CaptureOptions, ChangeDetectionConfig } from './types';
 
@@ -25,7 +26,22 @@ import type { CaptureOptions, ChangeDetectionConfig } from './types';
 export function validateOptions(options: Partial<CaptureOptions>): void {
   // Validate capture config
   if (options.capture) {
-    const { mode, interval, changeDetection } = options.capture;
+    const { mode, interval, changeDetection, autoStopTimeout } =
+      options.capture;
+
+    // Validate auto-stop timeout
+    if (autoStopTimeout !== undefined) {
+      if (
+        typeof autoStopTimeout !== 'number' ||
+        !Number.isFinite(autoStopTimeout) ||
+        autoStopTimeout < MIN_AUTO_STOP_TIMEOUT
+      ) {
+        throw new CaptureError(
+          CaptureErrorCode.INVALID_OPTIONS,
+          `capture.autoStopTimeout must be a number >= ${MIN_AUTO_STOP_TIMEOUT} milliseconds (or 0/undefined for manual stop)`
+        );
+      }
+    }
 
     // Validate mode if provided
     if (mode !== undefined) {
